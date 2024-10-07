@@ -71,10 +71,11 @@ def calculate_reward(x, y, end_x, end_y, time_steps):
         reward -= time_steps * 0.1  # Penalize longer time
         return reward
 
-def greedy_action_selection(state, epsilon, model):
+def greedy_action_selection(state, epsilon, model, device):
     if random.random() > epsilon:
         with torch.no_grad():
-            q_values = model(torch.tensor(state, dtype=torch.float32))
+            state_tensor = torch.tensor(state, dtype=torch.float32).to(device)
+            q_values = model(state_tensor)
             action = torch.argmax(q_values).item()  # Greedy action
     else:
         action = random.randint(0, 2)  # Explore: random action
@@ -118,7 +119,7 @@ def train():
 
         while not done:
             state = [x, y]
-            action = greedy_action_selection(state, epsilon, policy_net)
+            action = greedy_action_selection(state, epsilon, policy_net, device)
             
             # Perform action
             if action == 0:  # Move left
