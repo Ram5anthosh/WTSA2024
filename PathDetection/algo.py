@@ -74,7 +74,7 @@ def calculate_reward(x, y, end_x, end_y, time_steps):
 def greedy_action_selection(state, epsilon, model, device):
     if random.random() > epsilon:
         with torch.no_grad():
-            state_tensor = torch.tensor(state, dtype=torch.float32).to(device)
+            state_tensor = torch.tensor(state, dtype=torch.float32).to(device)  # Ensure tensor is on the right device
             q_values = model(state_tensor)
             action = torch.argmax(q_values).item()  # Greedy action
     else:
@@ -96,7 +96,6 @@ def plot_uav_paths(uav_path):
     plt.grid(True)
     plt.show()
 
-# Training loop
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -119,7 +118,7 @@ def train():
 
         while not done:
             state = [x, y]
-            action = greedy_action_selection(state, epsilon, policy_net, device)
+            action = greedy_action_selection(state, epsilon, policy_net, device)  # Pass the device here
             
             # Perform action
             if action == 0:  # Move left
