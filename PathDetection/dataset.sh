@@ -1,7 +1,7 @@
 #!/bin/bash
 #Change here to download a specific Height and Pitch Variation, for example - H_15_P_0
 # HP=('H_15_P_45' 'H_15_P_60' 'H_15_P_90')
-HP=('H_15_P_90')
+HP=('H_15_P_0')
 
 #Change here to download a specific weather subset, for example - ClearNoon
 #Note - For Segment, Instance and Depth annotations this field should only have ClearNoon variation

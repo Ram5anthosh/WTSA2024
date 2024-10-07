@@ -1,0 +1,92 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: >
+  TOSCA template for deploying drone-waste-detection-xapp with Docker and RIC messaging using xOpera orchestrator.
+
+metadata:
+  template_name: drone-waste-detection-xapp
+  template_version: 1.0.0
+  template_author: YourName
+
+topology_template:
+  inputs:
+    docker_registry_url:
+      type: string
+      description: URL of the Docker registry
+      default: "xApp-registry.local:5008"
+
+    image_name:
+      type: string
+      description: Name of the Docker image
+      default: "drone-waste-detection-xapp"
+
+    image_tag:
+      type: string
+      description: Tag of the Docker image
+      default: "1.0.0"
+
+    rmr_data_port:
+      type: integer
+      description: The RMR data port for messaging
+      default: 4560
+
+    rmr_route_port:
+      type: integer
+      description: The RMR route port for messaging
+      default: 4561
+
+  node_templates:
+
+    drone_waste_detection_xapp:
+      type: tosca.nodes.Container.Application.Docker
+      properties:
+        image: { get_input: image_name }
+        image_tag: { get_input: image_tag }
+        repository: { get_input: docker_registry_url }
+      capabilities:
+        host:
+          properties:
+            num_cpus: 2
+            mem_size: 4 GB
+
+    docker_host:
+      type: tosca.nodes.Compute
+      properties:
+        num_cpus: 4
+        mem_size: 8 GB
+        disk_size: 50 GB
+      capabilities:
+        operating_system:
+          properties:
+            type: linux
+            distribution: ubuntu
+            version: 20.04
+      requirements:
+        - host: docker
+
+    docker_hosted:
+      type: tosca.relationships.HostedOn
+      source: drone_waste_detection_xapp
+      target: docker_host
+
+    rmr_network:
+      type: tosca.nodes.network.Network
+      properties:
+        name: "RMR-network"
+
+    rmr_data_endpoint:
+      type: tosca.nodes.network.Port
+      properties:
+        network_name: "RMR-network"
+        port: { get_input: rmr_data_port }
+
+    rmr_route_endpoint:
+      type: tosca.nodes.network.Port
+      properties:
+        network_name: "RMR-network"
+        port: { get_input: rmr_route_port }
+
+  outputs:
+    xapp_status:
+      description: Status of the deployed xApp
+      value: { get_attribute: [drone_waste_detection_xapp, status] }
+
