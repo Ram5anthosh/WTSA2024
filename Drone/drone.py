@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym  # Update to gymnasium
+from gymnasium import spaces  # Update to gymnasium
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.logger import configure
 
 # Define the Drone Environment
-class DroneEnv(gym.Env):
+class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
     """Custom Environment for Drone Stabilization and Navigation with forward movement."""
     metadata = {'render.modes': ['human']}
     
@@ -117,7 +117,7 @@ class DroneEnv(gym.Env):
 # Initialize the custom environment
 env = DroneEnv()
 
-# Check if the environment adheres to the Gym standard
+# Check if the environment adheres to the Gymnasium standard
 check_env(env)
 
 # Create the PPO model (using Proximal Policy Optimization)
