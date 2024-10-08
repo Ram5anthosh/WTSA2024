@@ -1,5 +1,5 @@
 import gymnasium as gym  # Update to gymnasium
-from gymnasium import spaces  # Update to gymnasium
+from gymnasium import spaces
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -20,16 +20,18 @@ class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
         
         # Observation space: Drone's x, y coordinates, orientation, wind force, and stability status
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, -1, 0]),  # x, y, orientation (0-3), wind force, stable
-            high=np.array([10, 10, 3, 1, 1]),
+            low=np.array([0, 0, 0, -1, 0], dtype=np.float32),  # Ensure low bound is float32
+            high=np.array([10, 10, 3, 1, 1], dtype=np.float32),  # Ensure high bound is float32
             dtype=np.float32
         )
 
         # Initialize drone position, wind, and image waypoints
         self.reset()
 
-    def reset(self):
-        """Reset the environment."""
+    def reset(self, seed=None, options=None):
+        """Reset the environment with an optional seed for reproducibility."""
+        super().reset(seed=seed)  # Call the parent method to handle seeding
+        
         self.drone_pos = np.array([5, 5], dtype=np.float32)  # Drone starts in the center
         self.orientation = 0  # 0 = north, 1 = east, 2 = south, 3 = west
         self.wind_force = random.uniform(-1, 1)  # Wind force on the drone
@@ -40,14 +42,16 @@ class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
         # Log the drone's initial position and trajectory
         self.trajectory = [self.drone_pos.copy()]
 
-        # Return the initial state
-        return np.array([self.drone_pos[0], self.drone_pos[1], self.orientation, self.wind_force, self.stable])
+        # Return the initial state, casted to float32
+        return np.array([self.drone_pos[0], self.drone_pos[1], self.orientation, self.wind_force, self.stable], dtype=np.float32), {}
+
 
     def step(self, action):
-        """Take an action and return the new state, reward, done, and info."""
-        done = False
+        """Take an action and return the new state, reward, terminated, truncated, and info."""
+        terminated = False  # Whether the episode is completed
+        truncated = False  # Whether the episode was truncated (e.g., due to time limits)
         reward = 0
-        
+    
         # Actions: 0 = turn left, 1 = turn right, 2 = move forward, 3 = stabilize, 4 = move up, 5 = move down
         if action == 0:
             self.orientation = (self.orientation - 1) % 4  # Turn left (counterclockwise)
@@ -73,7 +77,7 @@ class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
         # Reduce stability if not stabilizing
         if action != 3:
             self.stable = 0
-        
+    
         # Image capture reward
         if tuple(np.round(self.drone_pos).astype(int)) in self.image_waypoints and self.stable == 1:
             self.captured_images += 1
@@ -81,7 +85,7 @@ class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
 
         # Check if all waypoints are captured
         if self.captured_images == len(self.image_waypoints):
-            done = True  # Episode ends when all images are captured
+            terminated = True  # Episode ends when all images are captured
             reward += 50  # Bonus for completing the task
 
         # Wind force randomly changes over time
@@ -90,10 +94,11 @@ class DroneEnv(gym.Env):  # Inherit from gymnasium.Env
         # Log the trajectory for visualization
         self.trajectory.append(self.drone_pos.copy())
 
-        # Observation
-        obs = np.array([self.drone_pos[0], self.drone_pos[1], self.orientation, self.wind_force, self.stable])
+        # Observation, cast to float32
+        obs = np.array([self.drone_pos[0], self.drone_pos[1], self.orientation, self.wind_force, self.stable], dtype=np.float32)
 
-        return obs, reward, done, {}
+        # Return the observation, reward, terminated, truncated, and info
+        return obs, reward, terminated, truncated, {}
 
     def move_forward(self):
         """Move the drone forward based on its orientation."""
@@ -163,7 +168,7 @@ def plot_results(rewards, trajectory):
     plt.show()
 
 # Test the trained model and gather data for visualization
-obs = env.reset()
+obs, _ = env.reset()  # Update for gymnasium's reset return format
 rewards = []
 total_reward = 0
 for i in range(100):
@@ -171,17 +176,17 @@ for i in range(100):
     action, _states = model.predict(obs)
     
     # Take the action and receive the new state and reward
-    obs, reward, done, info = env.step(action)
+    obs, reward, terminated, truncated, info = env.step(action)  # Unpack terminated and truncated
     total_reward += reward
     
     # Render the environment (prints the drone status)
     env.render()
     
-    # If the episode ends (all images captured or done condition is met), reset the environment
-    if done:
+    # If the episode ends (either terminated or truncated), reset the environment
+    if terminated or truncated:
         rewards.append(total_reward)
         total_reward = 0
-        obs = env.reset()
+        obs, _ = env.reset()
 
 # Plot the results
 plot_results(rewards, env.trajectory)
